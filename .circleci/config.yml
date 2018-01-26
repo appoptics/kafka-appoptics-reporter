@@ -7,7 +7,7 @@ jobs:
   build:
     docker:
       # specify the version you desire here
-      - image: nomadicoder/ruby-java-dev:latest
+      - image: circleci/ruby:latest
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -22,7 +22,9 @@ jobs:
     
     steps:
       - checkout
-      - run: sudo gem install package_cloud
+      - run: gem install package_cloud
+      - run: sudo apt-get install openjdk-8-jdk
+      - run: sudo apt-get install maven
       # Download and cache dependencies
       - restore_cache:
           keys:
