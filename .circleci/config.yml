@@ -22,7 +22,7 @@ jobs:
     
     steps:
       - checkout
-
+      - run: gem install package_cloud
       # Download and cache dependencies
       - restore_cache:
           keys:
@@ -39,3 +39,5 @@ jobs:
         
       # run tests!
       - run: mvn integration-test
+      - run: mvm package
+      - run: package_cloud push appoptics/integrations/kafka /target/kafka-appoptics-reporter-1.0.jar
