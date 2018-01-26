@@ -22,8 +22,8 @@ jobs:
     
     steps:
       - checkout
-      - run: apt-get install ruby
-      - run: gem install package_cloud
+      - run: sudo apt-get install ruby
+      - run: sudo gem install package_cloud
       # Download and cache dependencies
       - restore_cache:
           keys:
