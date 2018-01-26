@@ -42,4 +42,4 @@ jobs:
       # run tests!
       - run: mvn integration-test
       - run: mvn package
-      - run: package_cloud push AppOptics/kafka-appoptics-reporter/java target/kafka-appoptics-reporter-1.0.jar
+      - run: package_cloud push AppOptics/kafka-appoptics-reporter/java target/kafka-appoptics-reporter-1.0.jar --coordinates=com.appoptics.integrations.kafka:kafka-appoptics-reporter:1.0
