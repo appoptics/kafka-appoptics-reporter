@@ -1,0 +1,21 @@
+machine:
+  java:
+    version: oraclejdk8
+  environment:
+    PROJECT_NAME: "kafka-appoptics-reporter"
+dependencies:
+  cache_directories:
+    - ~/.m2/
+  override:
+    - ./scripts/get_ci_scripts.sh
+    - sudo pip install awscli
+    - ./scripts/setup_maven.sh
+# Build all tags
+deployment:
+  release:
+    commands:
+      - echo "NO DEPLOYMENT COMMANDS"
+    tag: /.*/
+teardown:
+  post:
+  - ./ci-scripts/bin/s3upload.sh
