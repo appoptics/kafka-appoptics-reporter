@@ -1,6 +1,6 @@
 # Kafka AppOptics Reporter
 
-Reports Kafka metrics to Librato.
+Reports Kafka metrics to [AppOptics](https://appoptics.com).
 
 # Usage
 
@@ -10,7 +10,7 @@ Reports Kafka metrics to Librato.
 ```
 kafka.metrics.reporters=com.appoptics.integrations.kafka.broker.KafkaAppopticsReporter
 
-# Configure reporting metrics to Librato
+# Configure reporting metrics to AppOptics
 appoptics.url=[api-url]
 appoptics.username=[username]
 appoptics.token=[api-token]
