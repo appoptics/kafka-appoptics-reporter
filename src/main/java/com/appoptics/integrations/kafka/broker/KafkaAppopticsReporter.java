@@ -21,14 +21,12 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
     public synchronized void init(VerifiableProperties props) {
         String apiUrl = props.getString("appoptics.url");
         if (apiUrl == null) {
-            LOG.info("no apiURL specified, defaulting to production");
-            apiUrl = "https://metrics-api.librato.com/v1/measurements";
+            apiUrl = "https://api.appoptics.com/v1/measurements";
         }
 
-        String username = props.getString("appoptics.username");
         String token = props.getString("appoptics.token");
         String source = props.getString("appoptics.agent.identifier");
-        LibratoClientBuilder libratoClientBuilder = new LibratoClientBuilder(username, token);
+        LibratoClientBuilder libratoClientBuilder = new LibratoClientBuilder("token", token);
         libratoClientBuilder.setURI(apiUrl);
         reporterBuilder = Reporter.builder(source, libratoClientBuilder.build());
 
