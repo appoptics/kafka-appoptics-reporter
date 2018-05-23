@@ -2,7 +2,11 @@
 
 Reports Kafka metrics to [AppOptics](https://appoptics.com).
 
-[[https://github.com/appoptics/kafka-appoptics-reporter/blob/master/kafka_dashboard.png|alt=Kafka Dashboard]]
+![Kafka Dashboard](https://github.com/appoptics/kafka-appoptics-reporter/blob/master/kafka_dashboard.png "Kafka Dashboard")
+
+# Supports
+
+* Kafka >= 0.10.0.0
 
 # Building
 
