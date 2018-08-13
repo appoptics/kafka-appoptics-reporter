@@ -31,14 +31,14 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
         List<Tag> tags = new ArrayList<Tag>();
 
         String source = props.getString("appoptics.agent.identifier", "");
-        if(!source.equals("")){
+        if (!source.equals("")) {
             tags.add(new Tag("source", source));
         }
 
         String customTags = props.getString("appoptics.tags", "");
-        if (!customTags.equals("")){
+        if (!customTags.equals("")) {
             String[] str = new String[]{customTags};
-            if(customTags.contains(",")){
+            if (customTags.contains(",")) {
                 str = customTags.split(",");
             }
             for (String tagString : str) {

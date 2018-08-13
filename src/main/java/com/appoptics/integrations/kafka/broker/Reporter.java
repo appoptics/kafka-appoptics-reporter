@@ -128,7 +128,7 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                 if (values.size() == 1) {
                     Number value = values.get("value");
                     TaggedMeasure taggedMeasure = new TaggedMeasure(new GaugeMeasure(metricName, value.doubleValue()));
-                    for (Tag tag : this.tags){
+                    for (Tag tag : this.tags) {
                         taggedMeasure.addTag(tag);
                     }
                     measures.add(taggedMeasure);
@@ -142,7 +142,7 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                             count.longValue(),
                             min.doubleValue(),
                             max.doubleValue()));
-                    for (Tag tag : this.tags){
+                    for (Tag tag : this.tags) {
                         taggedMeasure.addTag(tag);
                     }
                     measures.add(taggedMeasure);
