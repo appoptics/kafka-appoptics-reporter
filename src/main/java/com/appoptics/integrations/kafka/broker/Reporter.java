@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 public class Reporter extends AbstractPollingReporter implements MetricProcessor<KafkaMetricsBatch> {
     private static final Logger LOG = LoggerFactory.getLogger(Reporter.class);
     private final DeltaTracker deltaTracker;
-    private final String source;
     private final long timeout;
     private final TimeUnit timeoutUnit;
     private final Sanitizer sanitizer;
@@ -33,6 +32,7 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
     private final String prefix;
     private final String prefixDelimiter;
     private final LibratoClient libratoClient;
+    private final List<Tag> tags;
 
     protected final MetricsRegistry registry;
     protected final MetricPredicate predicate;
@@ -49,7 +49,6 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
     private Reporter(LibratoClient libratoClient,
                      String name,
                      final Sanitizer customSanitizer,
-                     String source,
                      long timeout,
                      TimeUnit timeoutUnit,
                      final MetricsRegistry registry,
@@ -59,11 +58,11 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                      boolean reportVmMetrics,
                      MetricExpansionConfig expansionConfig,
                      String prefix,
-                     String prefixDelimiter) {
+                     String prefixDelimiter,
+                     List<Tag> tags) {
         super(registry, name);
         this.libratoClient = libratoClient;
         this.sanitizer = customSanitizer;
-        this.source = source;
         this.timeout = timeout;
         this.timeoutUnit = timeoutUnit;
         this.registry = registry;
@@ -76,6 +75,7 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
         this.prefix = KafkaAppopticsUtil.checkPrefix(prefix);
         this.prefixDelimiter = prefixDelimiter;
         this.deltaTracker = new DeltaTracker(new Reporter.DeltaMetricSupplier(registry, predicate));
+        this.tags = tags;
     }
 
     /**
@@ -128,7 +128,9 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                 if (values.size() == 1) {
                     Number value = values.get("value");
                     TaggedMeasure taggedMeasure = new TaggedMeasure(new GaugeMeasure(metricName, value.doubleValue()));
-                    taggedMeasure.addTag(new Tag("source", source));
+                    for (Tag tag : this.tags){
+                        taggedMeasure.addTag(tag);
+                    }
                     measures.add(taggedMeasure);
                 } else if (values.size() == 4) {
                     Number count = values.get("count");
@@ -140,7 +142,9 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                             count.longValue(),
                             min.doubleValue(),
                             max.doubleValue()));
-                    taggedMeasure.addTag(new Tag("source", source));
+                    for (Tag tag : this.tags){
+                        taggedMeasure.addTag(tag);
+                    }
                     measures.add(taggedMeasure);
                 }
             }
@@ -229,7 +233,6 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
      * sane default values for everything else.
      */
     public static class Builder {
-        private final String source;
         private final LibratoClient libratoClient;
         private Sanitizer sanitizer = Sanitizer.NO_OP;
         private long timeout = 5;
@@ -243,9 +246,9 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
         private MetricExpansionConfig expansionConfig = MetricExpansionConfig.ALL;
         private String prefix;
         private String prefixDelimiter = ".";
-
-        public Builder(String source, LibratoClient libratoClient) {
-            this.source = source;
+        private final List<Tag> tags;
+        public Builder(List<Tag> tags, LibratoClient libratoClient) {
+            this.tags = tags;
             this.libratoClient = libratoClient;
         }
 
@@ -395,7 +398,6 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                     libratoClient,
                     name,
                     sanitizer,
-                    source,
                     timeout,
                     timeoutUnit,
                     registry,
@@ -405,12 +407,13 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                     reportVmMetrics,
                     expansionConfig,
                     prefix,
-                    prefixDelimiter);
+                    prefixDelimiter,
+                    tags);
         }
     }
 
-    public static Builder builder(String source, LibratoClient libratoClient) {
-        return new Builder(source, libratoClient);
+    public static Builder builder(List<Tag> tags, LibratoClient libratoClient) {
+        return new Builder(tags, libratoClient);
     }
 
     public enum ExpandedMetric {

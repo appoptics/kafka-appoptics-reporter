@@ -1,12 +1,15 @@
 package com.appoptics.integrations.kafka.broker;
 
 import com.librato.metrics.client.LibratoClientBuilder;
+import com.librato.metrics.client.Tag;
 import kafka.metrics.KafkaMetricsReporter;
 import kafka.utils.VerifiableProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -25,10 +28,33 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
         }
 
         String token = props.getString("appoptics.token");
-        String source = props.getString("appoptics.agent.identifier");
+        List<Tag> tags = new ArrayList<Tag>();
+
+        String source = props.getString("appoptics.agent.identifier", "");
+        if(!source.equals("")){
+            tags.add(new Tag("source", source));
+        }
+
+        String customTags = props.getString("appoptics.tags", "");
+        if (!customTags.equals("")){
+            String[] str = new String[]{customTags};
+            if(customTags.contains(",")){
+                str = customTags.split(",");
+            }
+            for (String tagString : str) {
+                if (customTags.contains(":")) {
+                    String properties[] = tagString.split(":");
+                    if (str.length == 2) {
+                        Tag tag = new Tag(properties[0], properties[1]);
+                        tags.add(tag);
+                    }
+                }
+            }
+        }
+
         LibratoClientBuilder libratoClientBuilder = new LibratoClientBuilder("token", token);
         libratoClientBuilder.setURI(apiUrl);
-        reporterBuilder = Reporter.builder(source, libratoClientBuilder.build());
+        reporterBuilder = Reporter.builder(tags, libratoClientBuilder.build());
 
         Set<Reporter.ExpandedMetric> metrics = new HashSet<>();
         maybeEnableMetric(props, metrics, Reporter.ExpandedMetric.MEDIAN, true);
