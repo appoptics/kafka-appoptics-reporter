@@ -26,4 +26,5 @@ kafka.metrics.reporters=com.appoptics.integrations.kafka.broker.KafkaAppopticsRe
 # Configure reporting metrics to AppOptics
 appoptics.token=[api-token]
 appoptics.agent.identifier=[hostname]
+appoptics.tags=[tag1name:tagvalue,tag2name:tag2value]
 ```
