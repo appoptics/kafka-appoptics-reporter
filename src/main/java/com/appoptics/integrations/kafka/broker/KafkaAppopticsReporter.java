@@ -20,23 +20,28 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
     private Reporter.Builder reporterBuilder;
     private Reporter reporter;
 
+    private final String URL = "appoptics.url";
+    private final String TOKEN = "appoptics.token";
+    private final String AGENT_IDENTIFIER = "appoptics.agent.identifier";
+    private final String TAGS = "appoptics.tags";
+
     @Override
     public synchronized void init(VerifiableProperties props) {
-        String apiUrl = props.getString("appoptics.url");
+        String apiUrl = props.getString(URL);
         if (apiUrl == null) {
             apiUrl = "https://api.appoptics.com/v1/measurements";
         }
 
-        String token = props.getString("appoptics.token");
+        String token = props.getString(TOKEN);
         List<Tag> tags = new ArrayList<Tag>();
 
-        String source = props.getString("appoptics.agent.identifier", "");
-        if (!source.equals("")) {
+        String source = props.getString(AGENT_IDENTIFIER, "");
+        if (!source.isEmpty()) {
             tags.add(new Tag("source", source));
         }
 
-        String customTags = props.getString("appoptics.tags", "");
-        if (!customTags.equals("")) {
+        String customTags = props.getString(TAGS, "");
+        if (!customTags.isEmpty()) {
             String[] str = new String[]{customTags};
             if (customTags.contains(",")) {
                 str = customTags.split(",");
