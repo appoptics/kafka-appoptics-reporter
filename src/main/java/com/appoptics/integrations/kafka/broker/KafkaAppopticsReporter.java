@@ -20,16 +20,17 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
     private Reporter.Builder reporterBuilder;
     private Reporter reporter;
 
-    private final String URL = "appoptics.url";
-    private final String TOKEN = "appoptics.token";
-    private final String AGENT_IDENTIFIER = "appoptics.agent.identifier";
-    private final String TAGS = "appoptics.tags";
+    private static final String URL = "appoptics.url";
+    private static final String TOKEN = "appoptics.token";
+    private static final String AGENT_IDENTIFIER = "appoptics.agent.identifier";
+    private static final String TAGS = "appoptics.tags";
+    private static final String DEFAULT_URL = "https://api.appoptics.com/v1/measurements";
 
     @Override
     public synchronized void init(VerifiableProperties props) {
         String apiUrl = props.getString(URL);
         if (apiUrl == null) {
-            apiUrl = "https://api.appoptics.com/v1/measurements";
+            apiUrl = DEFAULT_URL;
         }
 
         String token = props.getString(TOKEN);
@@ -42,19 +43,7 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
 
         String customTags = props.getString(TAGS, "");
         if (!customTags.isEmpty()) {
-            String[] str = new String[]{customTags};
-            if (customTags.contains(",")) {
-                str = customTags.split(",");
-            }
-            for (String tagString : str) {
-                if (customTags.contains(":")) {
-                    String properties[] = tagString.split(":");
-                    if (str.length == 2) {
-                        Tag tag = new Tag(properties[0], properties[1]);
-                        tags.add(tag);
-                    }
-                }
-            }
+           tags.addAll(TagProcessor.process(customTags));
         }
 
         LibratoClientBuilder libratoClientBuilder = new LibratoClientBuilder("token", token);
@@ -121,4 +110,6 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
             reporter = null;
         }
     }
+
+
 }
