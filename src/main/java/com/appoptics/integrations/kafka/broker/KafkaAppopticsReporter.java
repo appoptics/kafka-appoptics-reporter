@@ -1,12 +1,15 @@
 package com.appoptics.integrations.kafka.broker;
 
 import com.librato.metrics.client.LibratoClientBuilder;
+import com.librato.metrics.client.Tag;
 import kafka.metrics.KafkaMetricsReporter;
 import kafka.utils.VerifiableProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -17,18 +20,35 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
     private Reporter.Builder reporterBuilder;
     private Reporter reporter;
 
+    private static final String URL = "appoptics.url";
+    private static final String TOKEN = "appoptics.token";
+    private static final String AGENT_IDENTIFIER = "appoptics.agent.identifier";
+    private static final String TAGS = "appoptics.tags";
+    private static final String DEFAULT_URL = "https://api.appoptics.com/v1/measurements";
+
     @Override
     public synchronized void init(VerifiableProperties props) {
-        String apiUrl = props.getString("appoptics.url");
+        String apiUrl = props.getString(URL);
         if (apiUrl == null) {
-            apiUrl = "https://api.appoptics.com/v1/measurements";
+            apiUrl = DEFAULT_URL;
         }
 
-        String token = props.getString("appoptics.token");
-        String source = props.getString("appoptics.agent.identifier");
+        String token = props.getString(TOKEN);
+        List<Tag> tags = new ArrayList<Tag>();
+
+        String source = props.getString(AGENT_IDENTIFIER, "");
+        if (!source.isEmpty()) {
+            tags.add(new Tag("source", source));
+        }
+
+        String customTags = props.getString(TAGS, "");
+        if (!customTags.isEmpty()) {
+           tags.addAll(TagProcessor.process(customTags));
+        }
+
         LibratoClientBuilder libratoClientBuilder = new LibratoClientBuilder("token", token);
         libratoClientBuilder.setURI(apiUrl);
-        reporterBuilder = Reporter.builder(source, libratoClientBuilder.build());
+        reporterBuilder = Reporter.builder(tags, libratoClientBuilder.build());
 
         Set<Reporter.ExpandedMetric> metrics = new HashSet<>();
         maybeEnableMetric(props, metrics, Reporter.ExpandedMetric.MEDIAN, true);
@@ -90,4 +110,6 @@ public class KafkaAppopticsReporter implements KafkaMetricsReporter, KafkaAppopt
             reporter = null;
         }
     }
+
+
 }
