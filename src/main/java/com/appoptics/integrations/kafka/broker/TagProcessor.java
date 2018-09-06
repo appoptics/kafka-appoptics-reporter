@@ -14,6 +14,8 @@ final class TagProcessor {
     private static final String TAG_VALUE_REGEX = "\\A[-.:_?\\\\/\\w ]{1,255}\\z";
     private static final String TAG_KV_SEPARATOR = "=";
     private static final String TAGS_SEPARATOR = ",";
+    private static final Pattern NAME_PATTERN = Pattern.compile(TAG_NAME_REGEX);
+    private static final Pattern VALUE_PATTERN = Pattern.compile(TAG_VALUE_REGEX);
 
     /**
      * Converts a string of tags into a List of Tags after validating
@@ -47,13 +49,11 @@ final class TagProcessor {
      * @return boolean True if it meets the REGEX Requirements, False if either the name or the value fail to match
      */
     private static boolean isTagValid(String name, String value){
-        Pattern r = Pattern.compile(TAG_NAME_REGEX);
-        Matcher m = r.matcher(name);
+        Matcher m = NAME_PATTERN.matcher(name);
         if (!m.find()) {
             return false;
         }
-        r = Pattern.compile(TAG_VALUE_REGEX);
-        m = r.matcher(value);
+        m = VALUE_PATTERN.matcher(value);
         return m.find();
     }
 }
