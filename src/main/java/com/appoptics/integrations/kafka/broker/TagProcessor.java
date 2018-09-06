@@ -44,7 +44,7 @@ final class TagProcessor {
      * Ensures the name & key pass the regex criteria
      * @param name the Key for the metric tag
      * @param value the Value for the metric tag
-     * @return boolean True if it mets the REGEX Requirements, False if either the name or the value fail to match
+     * @return boolean True if it meets the REGEX Requirements, False if either the name or the value fail to match
      */
     private static boolean isTagValid(String name, String value){
         Pattern r = Pattern.compile(TAG_NAME_REGEX);
