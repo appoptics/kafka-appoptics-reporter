@@ -10,8 +10,8 @@ import java.util.regex.Pattern;
  * A Tag Processor to check the APPOPTICS_TAGS passed in meet criteria located @ https://docs.appoptics.com/api/#measurement-restrictions
  */
 final class TagProcessor {
-    private static final String TAG_NAME_REGEX = "\\A[-.:_?\\\\/\\w ]{1,255}\\z";
-    private static final String TAG_VALUE_REGEX = "\\A[-.:_\\w]{1,64}\\z";
+    private static final String TAG_NAME_REGEX = "\\A[-.:_\\w]{1,64}\\z";
+    private static final String TAG_VALUE_REGEX = "\\A[-.:_?\\\\/\\w ]{1,255}\\z";
     private static final String TAG_KV_SEPARATOR = "=";
     private static final String TAGS_SEPARATOR = ",";
 
