@@ -19,7 +19,7 @@ jobs:
     environment:
       # Customize the JVM maximum heap limit
       MAVEN_OPTS: -Xmx3200m
-      VERSION: "1.1"
+      VERSION: "1.2"
     
     steps:
       - checkout
