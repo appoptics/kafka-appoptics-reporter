@@ -24,12 +24,10 @@ class DeltaMetricSupplier implements DeltaTracker.MetricSupplier {
 
     public Map<NameAndTags, Metric> getMetrics() {
         final Map<NameAndTags, Metric> map = new HashMap<>();
-        for (Map.Entry<String, SortedMap<MetricName, Metric>> entry : registry.groupedMetrics(predicate).entrySet()) {
-            for (Map.Entry<MetricName, Metric> metricEntry : entry.getValue().entrySet()) {
-                NameAndTags nameAndTags = new NameAndTags(metricEntry.getKey());
-                map.put(nameAndTags, metricEntry.getValue());
-            }
-        }
+        registry.groupedMetrics(predicate).values().forEach(smap -> smap.forEach((name, metric) -> {
+            NameAndTags nameAndTags = new NameAndTags(name);
+            map.put(nameAndTags, metric);
+        }));
         return map;
     }
 }
