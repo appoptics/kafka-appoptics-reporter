@@ -1,21 +1,16 @@
 package com.appoptics.integrations.kafka.broker;
 
-import com.librato.metrics.client.Tag;
+import com.appoptics.metrics.client.Sanitizer;
+import com.appoptics.metrics.client.Tag;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 /**
  * A Tag Processor to check the APPOPTICS_TAGS passed in meet criteria located @ https://docs.appoptics.com/api/#measurement-restrictions
  */
 final class TagProcessor {
-    private static final String TAG_NAME_REGEX = "\\A[-.:_\\w]{1,64}\\z";
-    private static final String TAG_VALUE_REGEX = "\\A[-.:_?\\\\/\\w ]{1,255}\\z";
     private static final String TAG_KV_SEPARATOR = "=";
     private static final String TAGS_SEPARATOR = ",";
-    private static final Pattern NAME_PATTERN = Pattern.compile(TAG_NAME_REGEX);
-    private static final Pattern VALUE_PATTERN = Pattern.compile(TAG_VALUE_REGEX);
 
     /**
      * Converts a string of tags into a List of Tags after validating
@@ -30,9 +25,11 @@ final class TagProcessor {
         }
         for (String tagString : rawTags) {
             if (customTags.contains(TAG_KV_SEPARATOR)) {
-                String tagProperties[] = tagString.split(TAG_KV_SEPARATOR);
+                String[] tagProperties = tagString.split(TAG_KV_SEPARATOR);
                 if (tagProperties.length == 2) {
-                    if(isTagValid(tagProperties[0],tagProperties[1])){
+                    String name = Sanitizer.TAG_NAME_SANITIZER.apply(tagProperties[0]);
+                    String value = Sanitizer.TAG_VALUE_SANITIZER.apply(tagProperties[1]);
+                    if(isTagValid(name, value)){
                         Tag tag = new Tag(tagProperties[0], tagProperties[1]);
                         tags.add(tag);
                     }
@@ -43,18 +40,13 @@ final class TagProcessor {
     }
 
     /**
-     * Ensures the name & key pass the regex criteria
+     * Ensures the name & key pass the non-empty criteria
      * @param name the Key for the metric tag
      * @param value the Value for the metric tag
-     * @return boolean True if it meets the REGEX Requirements, False if either the name or the value fail to match
+     * @return boolean True if it meets the criteria
      */
     private static boolean isTagValid(String name, String value){
-        Matcher m = NAME_PATTERN.matcher(name);
-        if (!m.find()) {
-            return false;
-        }
-        m = VALUE_PATTERN.matcher(value);
-        return m.find();
+        return name != null && name.length() > 0 && value != null && value.length() > 0;
     }
 }
 

@@ -1,13 +1,10 @@
 package com.appoptics.integrations.kafka.broker;
 
-import com.librato.metrics.client.Sanitizer;
-import com.librato.metrics.client.Versions;
-import com.librato.metrics.reporter.LibratoReporter;
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.stats.Snapshot;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static java.lang.Double.isInfinite;
 import static java.lang.Double.isNaN;
@@ -15,94 +12,73 @@ import static java.lang.Double.isNaN;
 /**
  * a AppopticsBatch that understands Metrics-specific types
  */
-public class KafkaMetricsBatch extends AppopticsBatch {
-    private final Reporter.MetricExpansionConfig expansionConfig;
-    private final String prefix;
-    private final String prefixDelimiter;
+class KafkaMetricsBatch {
+    final List<Measurement> measurements = new ArrayList<>();
+
+    private final ExpandedMetric.ExpandedMetricConfig expansionConfig;
     private final DeltaTracker deltaTracker;
-
-    /**
-     * a string used to identify the library
-     */
-    private static final String AGENT_IDENTIFIER;
-
-    static {
-        final String version = Versions.getVersion("META-INF/maven/com.librato.metrics/metrics-librato/pom.properties", LibratoReporter.class);
-        final String codaVersion = Versions.getVersion("META-INF/maven/com.yammer.metrics/metrics-core/pom.properties", MetricsRegistry.class);
-        AGENT_IDENTIFIER = String.format("metrics-librato/%s metrics/%s", version, codaVersion);
-    }
 
     /**
      * Public constructor.
      */
-    public KafkaMetricsBatch(int postBatchSize,
-                               Sanitizer sanitizer,
-                               long timeout,
-                               TimeUnit timeoutUnit,
-                               Reporter.MetricExpansionConfig expansionConfig,
-                               String prefix,
-                               String delimiter,
-                               DeltaTracker deltaTracker) {
-        super(postBatchSize, sanitizer, timeout, timeoutUnit, AGENT_IDENTIFIER);
+    KafkaMetricsBatch(ExpandedMetric.ExpandedMetricConfig expansionConfig,
+                      DeltaTracker deltaTracker) {
         this.expansionConfig = Preconditions.checkNotNull(expansionConfig);
-        this.prefix = KafkaAppopticsUtil.checkPrefix(prefix);
-        this.prefixDelimiter = delimiter;
         this.deltaTracker = deltaTracker;
     }
 
-    public List<Measurement> getMeasurements() {
-        return measurements;
+    private void addMeasurement(Measurement measurement) {
+        measurements.add(measurement);
     }
 
-    @Override
-    public void addCounterMeasurement(String name, Long value) {
-        super.addCounterMeasurement(addPrefix(name), value);
+    void addGaugeMeasurement(NameAndTags nameAndTags, Number value) {
+        addMeasurement(new SimpleMeasurement(nameAndTags, value));
     }
 
-    @Override
-    public void addGaugeMeasurement(String name, Number value) {
-        super.addGaugeMeasurement(addPrefix(name), value);
+    void addGaugeMeasurement(String name, Number value) {
+        addMeasurement(new SimpleMeasurement(name, value));
     }
 
     // begin direct support for Coda Metrics
 
-    public void addGauge(String name, Gauge gauge) {
+    void addGauge(NameAndTags nameAndTags, Gauge gauge) {
         final Object value = gauge.value();
         if (value instanceof Number) {
             final Number number = (Number)value;
             if (isANumber(number)) {
-                addGaugeMeasurement(name, number);
+                addGaugeMeasurement(nameAndTags, number);
             }
         }
     }
 
-    public void addCounter(String name, Counter counter) {
-        addGaugeMeasurement(name, counter.count());
+    void addCounter(NameAndTags nameAndTags, Counter counter) {
+        final Long countDelta = deltaTracker.getDelta(nameAndTags, counter.count());
+        addGaugeMeasurement(nameAndTags, countDelta);
     }
 
-    public void addHistogram(String name, Histogram histogram) {
-        final Long countDelta = deltaTracker.getDelta(name, histogram.count());
-        maybeAdd(Reporter.ExpandedMetric.COUNT, name, countDelta);
-        addSummarizable(name, histogram);
-        addSampling(name, histogram);
+    void addHistogram(NameAndTags nameAndTags, Histogram histogram) {
+        final Long countDelta = deltaTracker.getDelta(nameAndTags, histogram.count());
+        maybeAdd(ExpandedMetric.COUNT, nameAndTags, countDelta);
+        addSummarizable(nameAndTags, histogram);
+        addSampling(nameAndTags, histogram);
     }
 
-    public void addMetered(String name, Metered meter) {
-        final Long deltaCount = deltaTracker.getDelta(name, meter.count());
-        maybeAdd(Reporter.ExpandedMetric.COUNT, name, deltaCount);
-        maybeAdd(Reporter.ExpandedMetric.RATE_MEAN, name, meter.meanRate());
-        maybeAdd(Reporter.ExpandedMetric.RATE_1_MINUTE, name, meter.oneMinuteRate());
-        maybeAdd(Reporter.ExpandedMetric.RATE_5_MINUTE, name, meter.fiveMinuteRate());
-        maybeAdd(Reporter.ExpandedMetric.RATE_15_MINUTE, name, meter.fifteenMinuteRate());
+    void addMetered(NameAndTags nameAndTags, Metered meter) {
+        final Long deltaCount = deltaTracker.getDelta(nameAndTags, meter.count());
+        maybeAdd(ExpandedMetric.COUNT, nameAndTags, deltaCount);
+        maybeAdd(ExpandedMetric.RATE_MEAN, nameAndTags, meter.meanRate());
+        maybeAdd(ExpandedMetric.RATE_1_MINUTE, nameAndTags, meter.oneMinuteRate());
+        maybeAdd(ExpandedMetric.RATE_5_MINUTE, nameAndTags, meter.fiveMinuteRate());
+        maybeAdd(ExpandedMetric.RATE_15_MINUTE, nameAndTags, meter.fifteenMinuteRate());
     }
 
-    public void addTimer(String name, Timer timer) {
-        addMetered(name, timer);
-        addSummarizable(name, timer);
-        addSampling(name, timer);
+    void addTimer(NameAndTags nameAndTags, Timer timer) {
+        addMetered(nameAndTags, timer);
+        addSummarizable(nameAndTags, timer);
+        addSampling(nameAndTags, timer);
     }
 
-    private void addSummarizable(String name, Summarizable summarizable) {
+    private void addSummarizable(NameAndTags nameAndTags, Summarizable summarizable) {
         // TODO: add sum_squares if/when Summarizable exposes it
         final double countCalculation = summarizable.sum() / summarizable.mean();
         Long countValue = null;
@@ -111,38 +87,30 @@ public class KafkaMetricsBatch extends AppopticsBatch {
         }
         // no need to publish these additional values if they are zero, plus the API will puke
         if (countValue != null && countValue > 0) {
-            addMeasurement(new MultiSampleGaugeMeasurement(
-                    name,
+            addMeasurement(new MultiSampleMeasurement(
+                    nameAndTags,
                     countValue,
                     summarizable.sum(),
                     summarizable.max(),
-                    summarizable.min(),
-                    null
+                    summarizable.min()
             ));
         }
     }
 
-    public void addSampling(String name, Sampling sampling) {
+    private void addSampling(NameAndTags nameAndTags, Sampling sampling) {
         final Snapshot snapshot = sampling.getSnapshot();
-        maybeAdd(Reporter.ExpandedMetric.MEDIAN, name, snapshot.getMedian());
-        maybeAdd(Reporter.ExpandedMetric.PCT_75, name, snapshot.get75thPercentile());
-        maybeAdd(Reporter.ExpandedMetric.PCT_95, name, snapshot.get95thPercentile());
-        maybeAdd(Reporter.ExpandedMetric.PCT_98, name, snapshot.get98thPercentile());
-        maybeAdd(Reporter.ExpandedMetric.PCT_99, name, snapshot.get99thPercentile());
-        maybeAdd(Reporter.ExpandedMetric.PCT_999, name, snapshot.get999thPercentile());
+        maybeAdd(ExpandedMetric.MEDIAN, nameAndTags, snapshot.getMedian());
+        maybeAdd(ExpandedMetric.PCT_75, nameAndTags, snapshot.get75thPercentile());
+        maybeAdd(ExpandedMetric.PCT_95, nameAndTags, snapshot.get95thPercentile());
+        maybeAdd(ExpandedMetric.PCT_98, nameAndTags, snapshot.get98thPercentile());
+        maybeAdd(ExpandedMetric.PCT_99, nameAndTags, snapshot.get99thPercentile());
+        maybeAdd(ExpandedMetric.PCT_999, nameAndTags, snapshot.get999thPercentile());
     }
 
-    private void maybeAdd(Reporter.ExpandedMetric metric, String name, Number reading) {
+    private void maybeAdd(ExpandedMetric metric, NameAndTags nameAndTags, Number reading) {
         if (expansionConfig.isSet(metric)) {
-            addGaugeMeasurement(metric.buildMetricName(name), reading);
+            addGaugeMeasurement(nameAndTags.withSuffix(metric.displayName), reading);
         }
-    }
-
-    private String addPrefix(String metricName) {
-        if (prefix == null || prefix.length() == 0) {
-            return metricName;
-        }
-        return prefix + prefixDelimiter + metricName;
     }
 
     /**

@@ -1,20 +1,36 @@
 package com.appoptics.integrations.kafka.broker;
 
-import java.util.Map;
+import com.appoptics.metrics.client.Measure;
+import com.appoptics.metrics.client.Sanitizer;
+import com.appoptics.metrics.client.Tag;
+
+import java.util.Collections;
+import java.util.List;
+
 
 /**
  * Represents a Librato measurement
  */
-public interface Measurement {
+public abstract class Measurement {
+    final String name;
+    final List<Tag> tags;
 
-    /**
-     * @return the name of the measurement
-     */
-    String getName();
+    public Measurement(NameAndTags nameAndTags) {
+        try {
+            KafkaMetricsBatch.Preconditions.checkNotNull(nameAndTags);
+            this.name = nameAndTags.getName();
+            this.tags = nameAndTags.getTags();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid single-gauge measurement metric=" + nameAndTags, e);
+        }
+    }
 
-    /**
-     * @return a map of metric names to numbers
-     */
-    Map<String, Number> toMap();
+    public Measurement(String name) {
+        KafkaMetricsBatch.Preconditions.checkNotNull(name);
+        this.name = Sanitizer.METRIC_NAME_SANITIZER.apply(name);
+        this.tags = Collections.emptyList();
+    }
+
+    public abstract Measure asMeasure(Tag... staticTags);
 }
 
