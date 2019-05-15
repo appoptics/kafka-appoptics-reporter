@@ -3,16 +3,17 @@ package com.appoptics.integrations.kafka.broker;
 import com.appoptics.metrics.client.*;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.*;
+import com.yammer.metrics.core.Timer;
 import com.yammer.metrics.reporting.AbstractPollingReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
 
 /**
  * A reporter for publishing metrics to <a href="https://appoptics.com/">Appoptics Metrics</a>
@@ -99,19 +100,39 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
 
     private void reportRegularMetrics(KafkaMetricsBatch batch) {
         final SortedMap<String, SortedMap<MetricName, Metric>> metrics = getMetricsRegistry().groupedMetrics(predicate);
-        LOG.debug("Preparing batch of {} top level metrics", metrics.size());
-        for (Map.Entry<String, SortedMap<MetricName, Metric>> entry : metrics.entrySet()) {
-            for (Map.Entry<MetricName, Metric> subEntry : entry.getValue().entrySet()) {
-                final Metric metric = subEntry.getValue();
+        Map<MetricName, Metric> flattened = new HashMap<>();
+        metrics.values().forEach(flattened::putAll);
+        Set<MetricName> reportable = filterAggregates(flattened.keySet());
+        LOG.debug("Preparing batch of {} measurements", reportable.size());
+
+        flattened.forEach((name, metric) -> {
+            if (reportable.contains(name)) {
                 if (metric != null) {
                     try {
-                        metric.processWith(this, subEntry.getKey(), batch);
+                        metric.processWith(this, name, batch);
                     } catch (Exception e) {
                         LOG.error("Error processing regular metrics:", e);
                     }
                 }
             }
-        }
+        });
+    }
+
+    private Set<MetricName> filterAggregates(Set<MetricName> input) {
+        Set<MetricName> output = new HashSet<>();
+        Map<String, List<MetricName>> grouped = input.stream()
+                .collect(groupingBy(n -> n.getGroup() + n.getType() + n.getName()));
+
+        grouped.forEach((g, values) -> {
+            if (values.size() == 1) {
+                output.addAll(values);
+            } else {
+                values.stream()
+                        .filter(n -> n.getScope() != null)
+                        .forEach(output::add);
+            }
+        });
+        return output;
     }
 
     public void processGauge(MetricName name, Gauge<?> gauge, KafkaMetricsBatch batch) {
