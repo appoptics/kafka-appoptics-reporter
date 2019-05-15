@@ -31,6 +31,6 @@ public abstract class Measurement {
         this.tags = Collections.emptyList();
     }
 
-    public abstract Measure asMeasure(Tag... staticTags);
+    public abstract Measure asMeasure(List<Tag> staticTags);
 }
 

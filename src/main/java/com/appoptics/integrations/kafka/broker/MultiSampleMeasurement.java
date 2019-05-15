@@ -4,6 +4,8 @@ package com.appoptics.integrations.kafka.broker;
 import com.appoptics.metrics.client.Measure;
 import com.appoptics.metrics.client.Tag;
 
+import java.util.List;
+
 /**
  * A class for representing a gauge reading that might come from multiple samples
  * <p/>
@@ -35,14 +37,14 @@ public class MultiSampleMeasurement extends Measurement {
     }
 
     @Override
-    public Measure asMeasure(Tag[] staticTags) {
+    public Measure asMeasure(List<Tag> staticTags) {
         Measure measure = new Measure(
                 name,
                 sum.doubleValue(),
                 count,
                 min.doubleValue(),
-                max.doubleValue(),
-                staticTags);
+                max.doubleValue());
+        staticTags.forEach(measure::addTag);
         tags.forEach(measure::addTag);
         return measure;
     }}

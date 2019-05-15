@@ -3,6 +3,8 @@ package com.appoptics.integrations.kafka.broker;
 import com.appoptics.metrics.client.Measure;
 import com.appoptics.metrics.client.Tag;
 
+import java.util.List;
+
 /**
  * A class representing a single gauge reading
  * <p/>
@@ -29,8 +31,10 @@ public class SimpleMeasurement extends Measurement {
         }
     }
 
-    public Measure asMeasure(Tag[] staticTags) {
-        Measure measure = new Measure(name, reading.doubleValue(), staticTags);
+    @Override
+    public Measure asMeasure(List<Tag> staticTags) {
+        Measure measure = new Measure(name, reading.doubleValue());
+        staticTags.forEach(measure::addTag);
         tags.forEach(measure::addTag);
         return measure;
     }

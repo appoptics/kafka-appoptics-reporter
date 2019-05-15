@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -24,7 +25,7 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
     private static final NameAndTags NON_HEAP_USAGE = new NameAndTags("kafka.server.jvm.memory.non_heap_usage");
     private static final NameAndTags DAEMON_THREAD_COUNT = new NameAndTags("kafka.server.jvm.daemon_thread_count");
     private static final NameAndTags THREAD_COUNT = new NameAndTags("kafka.server.jvm.thread_count");
-    private static final NameAndTags UPTIME = new NameAndTags("kafka.server.jvm.UPTIME");
+    private static final NameAndTags UPTIME = new NameAndTags("kafka.server.jvm.uptime");
     private static final NameAndTags FD_USAGE = new NameAndTags("kafka.server.jvm.fd_usage");
 
     private final DeltaTracker deltaTracker;
@@ -55,8 +56,8 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
         reportRegularMetrics(batch);
 
         try {
-            Measures measures = new Measures(tags, getEpoch(), (int) interval);
-            batch.measurements.forEach(m -> measures.add(m.asMeasure()));
+            Measures measures = new Measures(Collections.emptyList(), getEpoch(), (int) interval);
+            batch.measurements.forEach(m -> measures.add(m.asMeasure(tags)));
 
             PostMeasuresResult result = appopticsClient.postMeasures(measures);
             for (PostResult r : result.results) {
