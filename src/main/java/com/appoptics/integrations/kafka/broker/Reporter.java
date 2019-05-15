@@ -100,19 +100,20 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
 
     private void reportRegularMetrics(KafkaMetricsBatch batch) {
         final SortedMap<String, SortedMap<MetricName, Metric>> metrics = getMetricsRegistry().groupedMetrics(predicate);
+
+        // ungroup, we don't need the default grouping
         Map<MetricName, Metric> flattened = new HashMap<>();
         metrics.values().forEach(flattened::putAll);
+        // identify reportable measurements
         Set<MetricName> reportable = filterAggregates(flattened.keySet());
         LOG.debug("Preparing batch of {} measurements", reportable.size());
 
         flattened.forEach((name, metric) -> {
-            if (reportable.contains(name)) {
-                if (metric != null) {
-                    try {
-                        metric.processWith(this, name, batch);
-                    } catch (Exception e) {
-                        LOG.error("Error processing regular metrics:", e);
-                    }
+            if (reportable.contains(name) && metric != null) {
+                try {
+                    metric.processWith(this, name, batch);
+                } catch (Exception e) {
+                    LOG.error("Error processing regular metrics:", e);
                 }
             }
         });
@@ -120,9 +121,12 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
 
     private Set<MetricName> filterAggregates(Set<MetricName> input) {
         Set<MetricName> output = new HashSet<>();
+        // group metric names by group+type+name so that we can identify unwanted aggregate measurements
         Map<String, List<MetricName>> grouped = input.stream()
                 .collect(groupingBy(n -> n.getGroup() + n.getType() + n.getName()));
 
+        // inside any group with >1 measurement, any measurements with a null scope are dropped
+        // as the scoped measurements can be aggregated as needed in AppOptics
         grouped.forEach((g, values) -> {
             if (values.size() == 1) {
                 output.addAll(values);
