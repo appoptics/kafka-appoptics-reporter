@@ -19,8 +19,7 @@ jobs:
     environment:
       # Customize the JVM maximum heap limit
       MAVEN_OPTS: -Xmx3200m
-      VERSION: "1.2"
-    
+
     steps:
       - checkout
       - run: gem install package_cloud
@@ -43,4 +42,16 @@ jobs:
       # run tests!
       - run: mvn integration-test
       - run: mvn package
-      - run: package_cloud push AppOptics/kafka-appoptics-reporter/java target/kafka-appoptics-reporter-$VERSION.jar --coordinates=com.appoptics.integrations.kafka:kafka-appoptics-reporter:$VERSION
+      - run:
+          name: Release to packagecloud
+          command: |
+            if [[ "${CIRCLE_BRANCH}" == "master" ]]; then
+              VERSION=$(mvn -q \
+                  -Dexec.executable="echo" \
+                  -Dexec.args='${project.version}' \
+                  --non-recursive \
+                  org.codehaus.mojo:exec-maven-plugin:1.3.1:exec)
+
+              package_cloud push AppOptics/kafka-appoptics-reporter/java target/kafka-appoptics-reporter-$VERSION.jar \
+                 --coordinates=com.appoptics.integrations.kafka:kafka-appoptics-reporter:$VERSION
+            fi
