@@ -23,8 +23,8 @@ jobs:
     steps:
       - checkout
       - run: gem install package_cloud
-      - run: sudo apt-get install openjdk-8-jdk
-      - run: sudo apt-get install maven
+      - run: sudo apt-get -q update
+      - run: sudo apt-get -yq install openjdk-8-jdk maven
       # Download and cache dependencies
       - restore_cache:
           keys:
