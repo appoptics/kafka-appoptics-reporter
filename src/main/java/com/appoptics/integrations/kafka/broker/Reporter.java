@@ -72,7 +72,7 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                 }
             }
         } catch (Exception e) {
-            LOG.error("Librato post failed: ", e);
+            LOG.error("APPOPTICS post failed: ", e);
         }
     }
 
