@@ -51,12 +51,12 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
 
     @Override
     public void run() {
-        // accumulate all the metrics in the batch, then post it allowing the AppopticsBatch class to break up the work
-        KafkaMetricsBatch batch = new KafkaMetricsBatch(expansionConfig, deltaTracker);
-        reportVmMetrics(batch);
-        reportRegularMetrics(batch);
-
         try {
+            // accumulate all the metrics in the batch, then post it allowing the AppopticsBatch class to break up the work
+            KafkaMetricsBatch batch = new KafkaMetricsBatch(expansionConfig, deltaTracker);
+            reportVmMetrics(batch);
+            reportRegularMetrics(batch);
+
             Measures measures = new Measures(Collections.emptyList(), getEpoch(), (int) interval);
             batch.measurements.forEach(m -> measures.add(m.asMeasure(tags)));
 
@@ -72,7 +72,7 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
                 }
             }
         } catch (Exception e) {
-            LOG.error("Librato post failed: ", e);
+            LOG.error("APPOPTICS post failed: ", e);
         }
     }
 
