@@ -64,8 +64,12 @@ public class Reporter extends AbstractPollingReporter implements MetricProcessor
             for (PostResult r : result.results) {
                 if (r.isError()) {
                     if (r.response != null) {
-                        LOG.error(String.format("error attempting to post measurements to librato, response code %s",
-                                r.response.getResponseCode()), r.exception);
+                        String errMsg = String.format(
+                                "error attempting to post measurements to librato, response code %s, response body %s",
+                                r.response.getResponseCode(),
+                                new String(r.response.getResponseBody())
+                        );
+                        LOG.error(errMsg, r.exception);
                     } else {
                         LOG.error("error attempting to post measurements to librato", r.exception);
                     }
